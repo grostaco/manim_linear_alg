@@ -372,41 +372,41 @@ def pivot_row_reduce(scene: Scene, mat: np.ndarray):
 def lup_decomposition(scene: Scene, mat: np.ndarray):
     m, n = mat.shape
 
-    l = Mat(mat)
+    a = Mat(mat)
     p = Mat(np.eye(*mat.shape), hscale=2.5)
 
-    pivot_group = VGroup(MathTex("L ="), l, MathTex("P ="), p).arrange()
+    pivot_group = VGroup(MathTex("A ="), a, MathTex("P ="), p).arrange()
 
     text = Text("Partial Pivoting")
     text.next_to(pivot_group, DOWN * 2)
 
     scene.play(Write(pivot_group), Write(text))
 
-    r = l.rect_elem(0, 0).set_color(RED)
+    r = a.rect_elem(0, 0).set_color(RED)
     scene.play(Create(r))
     for j in range(min(n, m)):
         if j != 0:
-            r.target = l.rect_elem(j, j).set_color(RED)
+            r.target = a.rect_elem(j, j).set_color(RED)
             scene.play(MoveToTarget(r))
 
-        if l[j][j] == 0:
+        if a[j][j] == 0:
             # Search below
             if j != n - 1:
-                c = l.rect_row(j+1).set_color(BLUE)
+                c = a.rect_row(j+1).set_color(BLUE)
                 scene.play(Transform(r, c))
 
                 for i in range(j + 1, min(n, m)):
                     if i != j + 1:
-                        r.generate_target().move_to(l.matrix.get_rows()[i])
+                        r.generate_target().move_to(a.matrix.get_rows()[i])
                         scene.play(MoveToTarget(r))
 
-                    if l[i][j] != 0:
+                    if a[i][j] != 0:
                         pc = pivot_group.copy()
 
-                        l = pc[1]
+                        a = pc[1]
                         p = pc[3]
 
-                        l[[i, j]] = l[[j, i]]
+                        a[[i, j]] = a[[j, i]]
                         p[[i, j]] = p[[j, i]]
                         pc.arrange()
 
