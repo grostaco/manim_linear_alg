@@ -13,6 +13,10 @@ class Mat(VMobject):
         self.rounding = rounding
         self.hscale = hscale
 
+        self._update_matrix()
+        self.add(self.matrix)
+
+    def _update_matrix(self):
         if (self.mat.astype(np.int64) == self.mat).all():
             self.h_buff = max(MathTex(int(x)).length_over_dim(0)
                               for x in self.mat.flatten()) * self.hscale
@@ -23,17 +27,6 @@ class Mat(VMobject):
                               for x in self.mat.flatten()) * self.hscale
             self.matrix = Matrix(
                 np.round(self.mat, self.rounding), h_buff=self.h_buff)
-
-        self._update_matrix()
-        self.add(self.matrix)
-
-    def _update_matrix(self):
-        mob_matrix = self.matrix._matrix_to_mob_matrix(self.mat)
-        self.matrix._organize_mob_matrix(mob_matrix)
-        self.matrix.remove(self.matrix.elements)
-        self.matrix.elements = VGroup(*it.chain(*mob_matrix))
-        self.matrix.add(self.matrix.elements)
-        # self.center()
 
     def rect_elem(self, i: int, j: int) -> SurroundingRectangle:
         return SurroundingRectangle(self.matrix.get_rows()[i][j])
