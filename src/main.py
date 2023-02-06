@@ -403,21 +403,16 @@ def lup_decomposition(scene: Scene, mat: np.ndarray):
                     if l[i][j] != 0:
                         pc = pivot_group.copy()
 
-                        lc = pc[1]
+                        l = pc[1]
+                        p = pc[3]
 
-                        lc[[i, j]] = lc[[j, i]]
+                        l[[i, j]] = l[[j, i]]
+                        p[[i, j]] = p[[j, i]]
                         pc.arrange()
 
                         scene.play(
                             Transform(pivot_group, pc, replace_mobject_with_target_in_scene=True))
-                        # scene.remove(pc)
-
                         pivot_group = pc
-
-                        # scene.play(
-                        #     Transform(p, pc))
-                        # scene.remove(p)
-                        # p = pc
 
                         break
 
