@@ -1,5 +1,6 @@
 from manim import *
 import numpy as np
+from mobjects.mat import Mat
 
 
 def pivot_selection(scene: Scene, mat: np.ndarray):
@@ -86,15 +87,22 @@ def row_reduce(scene: Scene, mat: np.ndarray):
     scene.play(Write(VGroup(matrix, text).to_edge(UL)))
 
     m, n = mat.shape
+
+    pivot_rect = SurroundingRectangle(matrix.get_entries()[0]).set_color(RED)
+    target_rect = SurroundingRectangle(
+        matrix.get_entries()[0]).set_color(BLUE)
+
     for col in range(min(m, n)):
         pivot = matrix.get_entries()[col * n + col]
         pivot_rect = SurroundingRectangle(pivot).set_color(RED)
+        target_rect = SurroundingRectangle(pivot).set_color(RED)
+
         scene.play(Create(pivot_rect))
 
-        for row in range(col + 1, n):
+        for row in range(col + 1, min(m, n)):
             target = matrix.get_entries()[row * n + col]
-            target_rect = SurroundingRectangle(target).set_color(BLUE)
-            scene.play(Create(target_rect))
+            target_rect.target = SurroundingRectangle(target).set_color(BLUE)
+            scene.play(MoveToTarget(target_rect))
 
             if mat[row][col] != 0:
                 scale = mat[row][col] / mat[col][col]
@@ -117,35 +125,39 @@ def row_reduce(scene: Scene, mat: np.ndarray):
                            Write(eq))
 
                 scale_tex.next_to(eq, RIGHT)
-                scene.play(Transform(rhs, scale_tex))
+                scene.play(Transform(rhs, scale_tex,
+                           replace_mobject_with_target_in_scene=True))
 
                 mat[row] -= mat[col] * scale
-                mat[mat == 0] = abs(mat[mat == 0])
+                mat[row][0:col+1] = abs(mat[row][0:col+1])
 
-                # cmat = mat.round(1).copy().astype(object)
+                new_matrix = Matrix(mat.round(1), h_buff=1.6).to_corner(UL)
+                text.target = Text("Row Reduction").next_to(
+                    new_matrix, DOWN * 2)
 
-                # transformed_row = []
-                # for (i, v) in enumerate(cmat[row]):
-                #     transformed_row.append(
-                #         f"{v} - l_{{{row+1}{col+1}}} \\cdot {mat[col][i]}")
+                pivot_rect.target = SurroundingRectangle(
+                    new_matrix.get_entries()[col * n + col]).set_color(RED)
+                target_rect.target = SurroundingRectangle(
+                    new_matrix.get_entries()[row * n + col]).set_color(BLUE)
 
-                # cmat[row] = transformed_row
+                eq.generate_target()
+                scale_tex.generate_target()
 
-                # new_matrix = Matrix(cmat, h_buff=4.)
-                # new_matrix.move_to(matrix)
+                eq.target.next_to(
+                    new_matrix, aligned_edge=UR, direction=RIGHT * 2)
+                scale_tex.target.next_to(eq.target, RIGHT)
 
-                new_matrix = Matrix(mat.round(1), h_buff=1.6).move_to(matrix)
-
-                scene.remove(matrix)
-                scene.play(TransformFromCopy(matrix, new_matrix))
+                scene.play(Transform(matrix, new_matrix, replace_mobject_with_target_in_scene=True),
+                           MoveToTarget(text),
+                           MoveToTarget(pivot_rect), MoveToTarget(target_rect),
+                           MoveToTarget(eq), MoveToTarget(scale_tex))
 
                 matrix = new_matrix
 
-                scene.remove(eq, rhs)
+                scene.play(Unwrite(VGroup(eq, scale_tex)), run_time=0.5)
+                scene.remove(eq, scale_tex)
 
-            scene.remove(target_rect)
-
-        scene.remove(pivot_rect)
+        scene.play(Uncreate(pivot_rect), Uncreate(target_rect))
 
 
 def pivot_row_reduce(scene: Scene, mat: np.ndarray):
@@ -355,32 +367,87 @@ def pivot_row_reduce(scene: Scene, mat: np.ndarray):
                             new_matrix.get_rows()[col][col]).set_color(RED)))
 
             scene.play(Uncreate(target_rect), Uncreate(pivot_rect))
-    # scene.remove(text)
-    # scene.play(Transform(text, Text("Row Reduced").move_to(text)))
 
 
-def reduced_row_echelon(scene: Scene, mat: np.ndarray):
-    matrix = Matrix(mat.round(1))
+def lup_decomposition(scene: Scene, mat: np.ndarray):
+    m, n = mat.shape
+
+    l = Mat(mat)
+    p = Mat(np.eye(*mat.shape), hscale=2.5)
+
+    pivot_group = VGroup(MathTex("L ="), l, MathTex("P ="), p).arrange()
+
+    text = Text("Partial Pivoting")
+    text.next_to(pivot_group, DOWN * 2)
+
+    scene.play(Write(pivot_group), Write(text))
+
+    r = l.rect_elem(0, 0).set_color(RED)
+    scene.play(Create(r))
+    for j in range(n):
+        if j != 0:
+            r.target = l.rect_elem(j, j).set_color(RED)
+            scene.play(MoveToTarget(r))
+
+        if l[j][j] == 0:
+            # Search below
+            if j != n - 1:
+                c = l.rect_row(j+1).set_color(BLUE)
+                scene.play(Transform(r, c))
+
+                for i in range(j + 1, min(n, m)):
+                    if i != j + 1:
+                        r.generate_target().move_to(l.matrix.get_rows()[i])
+                        scene.play(MoveToTarget(r))
+
+                    if l[i][j] != 0:
+                        lc = pivot_group[1].copy()
+
+                        # lc = l.copy()
+                        # pc = pivot_group.copy()
+
+                        # lc[[i, j]] = lc[[j, i]]
+                        # lc.points = points
+
+                        scene.play(
+                            Transform(pivot_group[1], lc))
+                        # pc[1] = lc
+
+                        # scene.play(
+                        #     Transform(p, pc))
+                        # scene.remove(p)
+                        # p = pc
+
+                        break
+
+    scene.play(Uncreate(r))
 
 
 class MatDisplay(Scene):
     def construct(self):
         # mat = (np.random.random((4, 5)) * 100).astype(np.float64)
         # mat[np.random.random((4, 5)) < 0.4] = 0.
-        # mat = np.array([[0.,  12.1225,  54.2164, 33.53767495, 31.24970158],
-        #                 [21.82066998,  0., 53.09296433,
-        #                  41.37424145,  2.72551121],
-        #                 [12.07815709,  32.1253, 42.81924439,  7.69020931,  0.],
-        #                 [21.18154007, 50.1444337,  0., 88.50829655, 77.81459294]])
+        mat = np.array([[0.,  12.1225,  54.2164, 33.53767495, 31.24970158],
+                        [21.82066998,  0., 53.09296433,
+                         41.37424145,  2.72551121],
+                        [12.07815709,  32.1253, 42.81924439,  7.69020931,  0.],
+                        [21.18154007, 50.1444337,  0., 88.50829655, 77.81459294]])
         mat = np.array([
-            [1, 1, 1, -1],
-            [1, 2, 4, 3],
-            [1, 3, 9, 3]
+            [0, -3, 1, 2],
+            [3, 0, -5, 6],
+            [1, 1, 2, 4],
+            [5, 1, 3, -2]
         ], dtype=np.float64)
+        #mother = mat.copy()
+        #mat[2, 1] = 2142
 
-        #reduced_row_echelon(self, mat)
+        # self.play(Write(mat))
+        lup_decomposition(self, mat)
+        self.wait()
 
-        mat = pivot_row_reduce(self, mat)
+        #pivot_row_reduce(self, mat)
+
+        #mat = row_reduce(self, mat)
         # row_reduce(self, mat)
         # pivot_selection(self, ))
 
