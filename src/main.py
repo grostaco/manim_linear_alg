@@ -384,7 +384,7 @@ def lup_decomposition(scene: Scene, mat: np.ndarray):
 
     r = l.rect_elem(0, 0).set_color(RED)
     scene.play(Create(r))
-    for j in range(n):
+    for j in range(min(n, m)):
         if j != 0:
             r.target = l.rect_elem(j, j).set_color(RED)
             scene.play(MoveToTarget(r))
@@ -413,7 +413,6 @@ def lup_decomposition(scene: Scene, mat: np.ndarray):
                         scene.play(
                             Transform(pivot_group, pc, replace_mobject_with_target_in_scene=True))
                         pivot_group = pc
-
                         break
 
     scene.play(Uncreate(r))
